@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محاكي حركة الدودة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Cairo',sans-serif; }
+  body {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 30% 20%, #1a2332, #0a0f1a 70%);
+    color:#e2e8f0; padding:20px;
+  }
+  .app { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; justify-content:center; }
+
+  .panel {
+    background:#111827; border:1px solid #1f2937; border-radius:16px;
+    padding:20px; width:230px; box-shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  .panel h2 { font-size:18px; margin-bottom:16px; color:#4ade80; text-align:center; }
+  .stat { display:flex; justify-content:space-between; align-items:center;
+    background:#0a0f1a; border-radius:10px; padding:10px 14px; margin-bottom:10px; }
+  .stat span:first-child { color:#94a3b8; font-size:14px; }
+  .stat span:last-child { font-weight:800; font-size:18px; color:#fbbf24; }
+  #status { color:#4ade80; }
+
+  .controls-box { margin-top:16px; font-size:13px; color:#94a3b8; line-height:1.9; }
+  .controls-box b { color:#e2e8f0; }
+
+  #startBtn {
+    width:100%; margin-top:16px; padding:12px; border:none; border-radius:10px;
+    background:linear-gradient(135deg,#4ade80,#22c55e); color:#052e16;
+    font-weight:800; font-size:15px; cursor:pointer; transition:.2s;
+  }
+  #startBtn:active { transform:scale(.97); }
+
+  .game-box { position:relative; }
+  canvas {
+    background:#0a0f1a; border:2px solid #1f2937; border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.4); display:block;
+  }
+  #overlay {
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; background:rgba(10,15,26,.88); border-radius:16px;
+    text-align:center; gap:10px;
+  }
+  #overlay h1 { font-size:26px; color:#f87171; }
+  #overlay p { color:#cbd5e1; font-size:15px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="panel">
+    <h2>📊 معلومات اللعبة</h2>
+    <div class="stat"><span>النقاط</span><span id="score">0</span></div>
+    <div class="stat"><span>أعلى نتيجة</span><span id="highScore">0</span></div>
+    <div class="stat"><span>طول الدودة</span><span id="length">3</span></div>
+    <div class="stat"><span>المستوى</span><span id="level">1</span></div>
+    <div class="stat"><span>الحالة</span><span id="status">جاهز</span></div>
+
+    <div class="controls-box">
+      <b>التحكم:</b><br>
+      الأسهم أو WASD للحركة<br>
+      مسافة (Space) للإيقاف المؤقت<br>
+      اللمس والسحب على الجوال
+    </div>
+    <button id="startBtn">ابدأ اللعبة</button>
+  </div>
+
+  <div class="game-box">
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    <div id="overlay">
+      <h1>انتهت اللعبة</h1>
+      <p id="finalScoreText">نقاطك: 0</p>
+      <p style="color:#4ade80">اضغط "ابدأ اللعبة" للمحاولة مجدداً</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const GRID = 20, CELL = canvas.width / GRID;
+
+const scoreEl = document.getElementById('score');
+const highScoreEl = document.getElementById('highScore');
+const lengthEl = document.getElementById('length');
+const levelEl = document.getElementById('level');
+const statusEl = document.getElementById('status');
+const overlay = document.getElementById('overlay');
+const finalScoreText = document.getElementById('finalScoreText');
+const startBtn = document.getElementById('startBtn');
+
+let snake, direction, nextDirection, food, specialFood, specialTimer;
+let score, highScore, level, stepInterval, foodEaten, particles;
+let gameState = 'idle'; // idle | playing | paused | over
+let lastTime = 0, acc = 0;
+
+highScore = Number(localStorage.getItem('snakeHighScoreAR') || 0);
+highScoreEl.textContent = highScore;
+
+function resetGame() {
+  snake = [{x:9,y:10},{x:8,y:10},{x:7,y:10}];
+  direction = {x:1,y:0};
+  nextDirection = {x:1,y:0};
+  score = 0; level = 1; stepInterval = 150; foodEaten = 0;
+  specialFood = null; specialTimer = 0;
+  particles = [];
+  food = spawnFood();
+  updateSidebar();
+  overlay.classList.add('hidden');
+}
+
+function randCell() {
+  return { x: Math.floor(Math.random()*GRID), y: Math.floor(Math.random()*GRID) };
+}
+function cellFree(c) {
+  return !snake.some(s => s.x===c.x && s.y===c.y);
+}
+function spawnFood() {
+  let c; do { c = randCell(); } while(!cellFree(c));
+  return c;
+}
+function maybeSpawnSpecial() {
+  if (!specialFood) {
+    let c; do { c = randCell(); } while(!cellFree(c) || (c.x===food.x && c.y===food.y));
+    specialFood = c;
+    specialTimer = 5000;
+  }
+}
+function spawnParticles(x, y, color) {
+  for (let i=0; i<14; i++) {
+    const a = Math.random()*Math.PI*2, sp = 1+Math.random()*2.5;
+    particles.push({
+      x:(x+0.5)*CELL, y:(y+0.5)*CELL,
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+      life:1, color
+    });
+  }
+}
+
+function update(dt) {
+  direction = nextDirection;
+  const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+  head.x = (head.x + GRID) % GRID;
+  head.y = (head.y + GRID) % GRID;
+
+  if (snake.some(s => s.x===head.x && s.y===head.y)) {
+    endGame();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if (head.x===food.x && head.y===food.y) {
+    score += 10; foodEaten++;
+    spawnParticles(food.x, food.y, '#ef4444');
+    food = spawnFood();
+    if (foodEaten % 5 === 0) maybeSpawnSpecial();
+    levelUpCheck();
+  } else if (specialFood && head.x===specialFood.x && head.y===specialFood.y) {
+    score += 50;
+    spawnParticles(specialFood.x, specialFood.y, '#fbbf24');
+    snake.push({...snake[snake.length-1]});
+    specialFood = null;
+    levelUpCheck();
+  } else {
+    snake.pop();
+  }
+
+  if (specialFood) {
+    specialTimer -= dt;
+    if (specialTimer <= 0) specialFood = null;
+  }
+
+  updateSidebar();
+}
+
+function levelUpCheck() {
+  const newLevel = Math.floor(score/50) + 1;
+  if (newLevel !== level) {
+    level = newLevel;
+    stepInterval = Math.max(60, 150 - (level-1)*8);
+  }
+}
+
+function endGame() {
+  gameState = 'over';
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('snakeHighScoreAR', highScore);
+  }
+  finalScoreText.textContent = `نقاطك: ${score}`;
+  overlay.classList.remove('hidden');
+  updateSidebar();
+}
+
+function updateSidebar() {
+  scoreEl.textContent = score;
+  highScoreEl.textContent = highScore;
+  lengthEl.textContent = snake.length;
+  levelEl.textContent = level;
+  const map = { idle:'جاهز', playing:'يلعب', paused:'موقوف مؤقتاً', over:'انتهت' };
+  statusEl.textContent = map[gameState];
+  statusEl.style.color = gameState==='over' ? '#f87171' : gameState==='paused' ? '#fbbf24' : '#4ade80';
+}
+
+function drawGrid() {
+  ctx.strokeStyle = '#141b2b';
+  for (let i=0;i<=GRID;i++) {
+    ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(canvas.width,i*CELL); ctx.stroke();
+  }
+}
+function drawSnake() {
+  snake.forEach((s,i) => {
+    const t = i/snake.length;
+    ctx.fillStyle = i===0 ? '#86efac' : `rgba(74,222,128,${1-t*0.5})`;
+    ctx.beginPath();
+    ctx.roundRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2, 6);
+    ctx.fill();
+  });
+}
+function drawFood() {
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc((food.x+0.5)*CELL, (food.y+0.5)*CELL, CELL*0.35, 0, Math.PI*2);
+  ctx.fill();
+
+  if (specialFood) {
+    ctx.save();
+    ctx.translate((specialFood.x+0.5)*CELL, (specialFood.y+0.5)*CELL);
+    ctx.rotate(Date.now()/300);
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    for (let i=0;i<5;i++) {
+      const a = (i*2*Math.PI/5) - Math.PI/2;
+      const r = CELL*0.4;
+      ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+      const a2 = a + Math.PI/5;
+      ctx.lineTo(Math.cos(a2)*r*0.45, Math.sin(a2)*r*0.45);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(p.life,0);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+function updateParticles() {
+  particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.life-=0.03; });
+  particles = particles.filter(p => p.life>0);
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  drawFood();
+  drawSnake();
+  drawParticles();
+}
+
+function gameLoop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = ts - lastTime;
+  lastTime = ts;
+
+  if (gameState === 'playing') {
+    acc += dt;
+    if (acc >= stepInterval) { update(acc); acc = 0; }
+    updateParticles();
+    draw();
+  } else if (gameState !== 'idle') {
+    updateParticles();
+    draw();
+  }
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+
+function setDirection(dx, dy) {
+  if (direction.x === -dx && direction.y === -dy) return;
+  nextDirection = {x:dx, y:dy};
+}
+
+document.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (gameState==='playing' || gameState==='paused') {
+    if (['arrowup','w'].includes(k)) setDirection(0,-1);
+    else if (['arrowdown','s'].includes(k)) setDirection(0,1);
+    else if (['arrowleft','a'].includes(k)) setDirection(-1,0);
+    else if (['arrowright','d'].includes(k)) setDirection(1,0);
+  }
+  if (k === ' ') {
+    e.preventDefault();
+    if (gameState==='playing') gameState='paused';
+    else if (gameState==='paused') gameState='playing';
+    updateSidebar();
+  }
+});
+
+let touchStart = null;
+canvas.addEventListener('touchstart', e => {
+  touchStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+});
+canvas.addEventListener('touchend', e => {
+  if (!touchStart) return;
+  const dx = e.changedTouches[0].clientX - touchStart.x;
+  const dy = e.changedTouches[0].clientY - touchStart.y;
+  if (Math.abs(dx) > Math.abs(dy)) setDirection(dx>0?1:-1, 0);
+  else setDirection(0, dy>0?1:-1);
+  touchStart = null;
+});
+
+startBtn.addEventListener('click', () => {
+  resetGame();
+  gameState = 'playing';
+  updateSidebar();
+});
+</script>
+</body>
+</html>
