@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>منصة الألعاب المتقدمة | 51-in-1 Ultimate Game Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        neon: { cyan: '#00f3ff', magenta: '#ff00ff', yellow: '#ffe600', green: '#00ff66', orange: '#ff6600' }
+                    },
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #070a12; color: #f3f4f6; user-select: none; touch-action: manipulation; }
+        .neon-glow { box-shadow: 0 0 15px rgba(0, 243, 255, 0.4); }
+        .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-hover:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px -5px rgba(0, 243, 255, 0.3); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #070a12; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+        canvas { touch-action: none; display: block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-x-hidden bg-slate-950 text-slate-100 select-none">
+
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800 px-4 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.showDashboard()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-fuchsia-500 to-amber-400 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg shadow-cyan-500/30">
+                    <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-wide bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
+                        51-IN-1 GAME HUB
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">عالم الألعاب التفاعلية والأركيد المباشرة</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-4">
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900/90 px-3.5 py-1.5 rounded-xl border border-slate-800 text-sm">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <span class="text-xs text-slate-400">مجموع النقاط:</span>
+                    <span id="total-score-badge" class="font-bold text-cyan-400">0</span>
+                </div>
+
+                <button id="sound-toggle-btn" onclick="sound.toggleSound()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 transition" title="الصوت">
+                    <i class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+
+                <button onclick="app.toggleFullscreen()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 transition" title="ملء الشاشة">
+                    <i class="fa-solid fa-expand text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="dashboard-view" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8">
+        <div class="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div class="relative w-full md:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="game-search" oninput="app.filterGames()" placeholder="ابحث بين 51 لعبة..." 
+                    class="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <div id="category-filters" class="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end">
+                <button onclick="app.setCategory('all')" class="cat-btn active px-4 py-1.5 rounded-lg text-sm font-semibold bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20">الكل (51)</button>
+                <button onclick="app.setCategory('action')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800">أكشن</button>
+                <button onclick="app.setCategory('arcade')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800">آركيد</button>
+                <button onclick="app.setCategory('puzzle')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800">ألغاز</button>
+                <button onclick="app.setCategory('sports')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800">رياضة</button>
+                <button onclick="app.setCategory('classic')" class="cat-btn px-4 py-1.5 rounded-lg text-sm font-semibold bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800">كلاسيك</button>
+            </div>
+        </div>
+
+        <div id="games-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <!-- 51 Games dynamically injected here -->
+        </div>
+    </main>
+
+    <div id="game-view" class="fixed inset-0 z-50 bg-slate-950/95 flex flex-col hidden backdrop-blur-md">
+        <!-- Top bar -->
+        <div class="px-4 py-2 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+            <button onclick="app.closeGame()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-sm">
+                <i class="fa-solid fa-arrow-right"></i>
+                <span class="hidden sm:inline">القائمة الرئيسية</span>
+            </button>
+
+            <div class="text-center">
+                <h2 id="active-game-title" class="text-base sm:text-lg font-bold text-cyan-400">اسم اللعبة</h2>
+                <div class="text-xs text-slate-400">
+                    النتيجة: <span id="current-score" class="text-amber-400 font-bold text-sm">0</span> | 
+                    أفضل نتيجة: <span id="high-score" class="text-emerald-400 font-bold">0</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="app.restartActiveGame()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-cyan-400 transition" title="إعادة التشغيل">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button onclick="app.toggleVirtualController()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-cyan-400 transition" title="أزرار التحكم">
+                    <i class="fa-solid fa-gamepad"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage Container -->
+        <div class="flex-1 relative flex items-center justify-center p-2 overflow-hidden bg-slate-950">
+            <div id="game-stage" class="relative w-full h-full max-w-3xl max-h-[75vh] flex items-center justify-center">
+                <!-- Active canvas or HTML UI -->
+            </div>
+        </div>
+
+        <!-- FIXED TOUCH CONTROLS (Right = Right, Left = Left) -->
+        <div id="touch-controls" class="bg-slate-900/95 border-t border-slate-800 p-2 sm:p-3 flex justify-between items-center max-w-md mx-auto w-full rounded-t-2xl select-none">
+            <!-- D-Pad Left/Right Corrected -->
+            <div class="grid grid-cols-3 gap-1.5 w-36 h-36 relative">
+                <div></div>
+                <button id="btn-up" class="bg-slate-800 active:bg-cyan-500 text-slate-200 rounded-xl flex items-center justify-center text-2xl shadow border border-slate-700/50"><i class="fa-solid fa-caret-up"></i></button>
+                <div></div>
+                <!-- Corrected Left button sends ArrowLeft directly -->
+                <button id="btn-left" class="bg-slate-800 active:bg-cyan-500 text-slate-200 rounded-xl flex items-center justify-center text-2xl shadow border border-slate-700/50"><i class="fa-solid fa-caret-left"></i></button>
+                <div class="bg-slate-900/50 rounded-xl"></div>
+                <!-- Corrected Right button sends ArrowRight directly -->
+                <button id="btn-right" class="bg-slate-800 active:bg-cyan-500 text-slate-200 rounded-xl flex items-center justify-center text-2xl shadow border border-slate-700/50"><i class="fa-solid fa-caret-right"></i></button>
+                <div></div>
+                <button id="btn-down" class="bg-slate-800 active:bg-cyan-500 text-slate-200 rounded-xl flex items-center justify-center text-2xl shadow border border-slate-700/50"><i class="fa-solid fa-caret-down"></i></button>
+                <div></div>
+            </div>
+
+            <!-- Action Buttons Right -->
+            <div class="flex gap-3 items-center">
+                <button id="btn-action-b" class="w-14 h-14 rounded-full bg-slate-800 active:bg-amber-500 text-amber-400 font-bold text-lg shadow border border-amber-500/30 flex items-center justify-center">B</button>
+                <button id="btn-action-a" class="w-16 h-16 rounded-full bg-cyan-500 active:bg-cyan-400 text-slate-950 font-black text-xl shadow-lg shadow-cyan-500/30 flex items-center justify-center">A</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio Synthesized Sound Engine
+        class SoundEngine {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            }
+            playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+            playClick() { this.playTone(600, 'sine', 0.05, 0.05); }
+            playScore() { this.playTone(880, 'triangle', 0.12, 0.1); }
+            playHit() { this.playTone(140, 'sawtooth', 0.2, 0.15); }
+            playWin() { 
+                this.playTone(523, 'sine', 0.1, 0.1);
+                setTimeout(() => this.playTone(659, 'sine', 0.1, 0.1), 90);
+                setTimeout(() => this.playTone(783, 'sine', 0.2, 0.1), 180);
+            }
+            toggleSound() {
+                this.enabled = !this.enabled;
+                const btn = document.getElementById('sound-toggle-btn');
+                btn.innerHTML = this.enabled 
+                    ? '<i class="fa-solid fa-volume-high text-lg"></i>' 
+                    : '<i class="fa-solid fa-volume-xmark text-lg text-rose-500"></i>';
+            }
+        }
+        const sound = new SoundEngine();
+
+        // 51 Catalog items
+        const GAMES_LIST = [
+            { id: 'snake', name: 'Snake Classic', icon: 'fa-dragon', color: 'from-emerald-500 to-teal-700', cat: 'arcade', desc: 'لعبة الثعبان الكلاسيكية مع سرعة متزايدة وأطعمة ممتازة.' },
+            { id: 'pong', name: 'Pong Table Tennis', icon: 'fa-table-tennis-paddle-ball', color: 'from-slate-600 to-slate-800', cat: 'classic', desc: 'تنس الطاولة الكلاسيكي ضد الذكاء الاصطناعي.' },
+            { id: 'flappy', name: 'Flappy Bird', icon: 'fa-crow', color: 'from-amber-500 to-orange-600', cat: 'arcade', desc: 'حلق عبر الأنابيب بلمسة واحدة لتفادي العقبات.' },
+            { id: 'space', name: 'Space Invaders', icon: 'fa-shuttle-space', color: 'from-indigo-600 to-purple-800', cat: 'action', desc: 'دمر سفن الغزاة الفضائية قبل وصولها للأسفل.' },
+            { id: 'breakout', name: 'Brick Breaker', icon: 'fa-border-all', color: 'from-rose-500 to-red-700', cat: 'arcade', desc: 'حطم القوالب الملونة بالكرة والمضرب المتحرك.' },
+            { id: 'tetris', name: 'Tetris Blocks', icon: 'fa-cubes-stacked', color: 'from-cyan-600 to-blue-800', cat: 'puzzle', desc: 'لعبة المكعبات المتساقطة الشهيرة ورص الخطوط.' },
+            { id: 'g2048', name: '2048 Puzzle', icon: 'fa-cubes', color: 'from-yellow-500 to-amber-700', cat: 'puzzle', desc: 'دمج الأرقام المتشابهة للوصول للرقم 2048.' },
+            { id: 'tictactoe', name: 'Tic Tac Toe AI', icon: 'fa-xmark', color: 'from-cyan-500 to-blue-700', cat: 'classic', desc: 'لعبة XO الشهيرة ضد الكمبيوتر الذكي.' },
+            { id: 'memory', name: 'Memory Match', icon: 'fa-brain', color: 'from-fuchsia-500 to-pink-700', cat: 'puzzle', desc: 'طابق بطاقات الصور المتشابهة لاختبار الذاكرة.' },
+            { id: 'rain', name: 'Rain Block Dodge', icon: 'fa-cloud-showers-heavy', color: 'from-blue-600 to-slate-800', cat: 'action', desc: 'تحرك بسرعة لتفادي الكتل المتساقطة بكثرة.' },
+            { id: 'mole', name: 'Whack A Mole', icon: 'fa-hammer', color: 'from-amber-600 to-stone-700', cat: 'action', desc: 'اصطد السناجب الخارجة من الحفر بسرعة دقيقة.' },
+            { id: 'car', name: 'Car Racing Dodge', icon: 'fa-car-side', color: 'from-red-600 to-zinc-900', cat: 'sports', desc: 'سق سيارتك وتفادَ السيارات الأخرى في الطريق.' },
+            { id: 'dino', name: 'Dino Runner', icon: 'fa-person-running', color: 'from-green-600 to-emerald-800', cat: 'arcade', desc: 'اقفز فوق الصبار والعقبات بالديناصور.' },
+            { id: 'simon', name: 'Simon Says', icon: 'fa-lightbulb', color: 'from-teal-500 to-cyan-700', cat: 'puzzle', desc: 'احفظ تسلسل الألوان والأصوات وكررها.' },
+            { id: 'frogger', name: 'Frogger Crossing', icon: 'fa-frog', color: 'from-emerald-600 to-lime-800', cat: 'arcade', desc: 'ساعد الضفدع على عبور الطريق المزدحم بسلام.' },
+            { id: 'connect4', name: 'Connect 4 AI', icon: 'fa-circle-dot', color: 'from-blue-600 to-indigo-800', cat: 'classic', desc: 'شكل صفاً من 4 أقراص متتالية قبل خصمك.' },
+            { id: 'rps', name: 'RPS Extreme', icon: 'fa-hand-fist', color: 'from-sky-500 to-indigo-700', cat: 'classic', desc: 'حجرة ورقة مقص التكتيكية المتقدمة.' },
+            { id: 'runner', name: 'Endless Jumper', icon: 'fa-person-rays', color: 'from-violet-600 to-purple-900', cat: 'arcade', desc: 'الجري والقفز اللافت لتفادي العوائق.' },
+            { id: 'archery', name: 'Archery Shooting', icon: 'fa-bullseye', color: 'from-rose-600 to-pink-800', cat: 'sports', desc: 'اضبط القوس والسهم ونقّب في منتصف الهدف.' },
+            { id: 'helicopter', name: 'Cave Helicopter', icon: 'fa-helicopter', color: 'from-amber-500 to-red-600', cat: 'arcade', desc: 'حافظ على تحليق المروحية داخل الكهف الضيق.' },
+            { id: 'mines', name: 'Minesweeper', icon: 'fa-land-mine-on', color: 'from-red-600 to-slate-800', cat: 'puzzle', desc: 'اكشف المربعات الآمنة وتجنب حقول الألغام.' },
+            { id: 'bubble', name: 'Bubble Shooter', icon: 'fa-circle-nodes', color: 'from-purple-500 to-pink-600', cat: 'arcade', desc: 'أطلق الفقاعات الملونة لتشكيل مجموعات مطابقة.' },
+            { id: 'coins', name: 'Coin Catcher', icon: 'fa-coins', color: 'from-yellow-400 to-amber-600', cat: 'arcade', desc: 'التقط العملات الذهبية الساقطة وتجنب القنابل.' },
+            { id: 'ninja', name: 'Ninja Slice', icon: 'fa-wand-magic-sparkles', color: 'from-red-500 to-orange-700', cat: 'action', desc: 'قطع الفواكه الطائرة بلمسات سريعة.' },
+            { id: 'colorswitch', name: 'Color Switch', icon: 'fa-palette', color: 'from-violet-500 to-purple-800', cat: 'arcade', desc: 'اقفز بالكرة عبر الموانع الملونة المطابقة.' },
+            { id: 'stacker', name: 'Tower Stacker', icon: 'fa-layer-group', color: 'from-blue-500 to-cyan-700', cat: 'arcade', desc: 'ابنِ أطول برج عن طريق إيقاف الكتل بدقة.' },
+            { id: 'knife', name: 'Knife Throw', icon: 'fa-utensils', color: 'from-slate-700 to-red-900', cat: 'action', desc: 'ارمِ السكاكين على الهدف الدوار بدون تصادم.' },
+            { id: 'maze', name: 'Maze Escape', icon: 'fa-compass', color: 'from-teal-600 to-emerald-900', cat: 'puzzle', desc: 'اعثر على طريقة الخروج من المتاهة المعقدة.' },
+            { id: 'math', name: 'Math Speed Quiz', icon: 'fa-calculator', color: 'from-emerald-600 to-teal-800', cat: 'puzzle', desc: 'حل المسائل الرياضية بسرعة قبل انتهاء الوقت.' },
+            { id: 'typing', name: 'Letter Shooter', icon: 'fa-keyboard', color: 'from-cyan-600 to-indigo-800', cat: 'arcade', desc: 'أطلق النار على الحروف الساقطة للتدريب.' },
+            { id: 'rope', name: 'Jump Rope Timing', icon: 'fa-person-running', color: 'from-pink-500 to-rose-700', cat: 'sports', desc: 'اضبط توقيت القفز على الحبل بدقة عالية.' },
+            { id: 'basket', name: 'Basketball Throw', icon: 'fa-basketball', color: 'from-orange-500 to-amber-700', cat: 'sports', desc: 'رميات سلة دقيقة لتسجيل أعلى النقاط.' },
+            { id: 'bowling', name: 'Bowling Strike', icon: 'fa-bowling-ball', color: 'from-red-600 to-rose-900', cat: 'sports', desc: 'اسقط جميع القوارير بكرة البولينج.' },
+            { id: 'pinball', name: 'Bouncing Pinball', icon: 'fa-circle-dot', color: 'from-yellow-600 to-amber-800', cat: 'arcade', desc: 'حرك الكرة داخل منصة البينبول وارفع مجموعك.' },
+            { id: 'asteroids', name: 'Asteroids Blast', icon: 'fa-meteor', color: 'from-orange-600 to-amber-800', cat: 'action', desc: 'دمر الكويكبات الفضائية قبل أن تصطدم بك.' },
+            { id: 'dash', name: 'Geometry Dash', icon: 'fa-square', color: 'from-lime-500 to-emerald-700', cat: 'arcade', desc: 'قفز القالب الهندسي فوق العقبات السريعة.' },
+            { id: 'match3', name: 'Gem Match 3', icon: 'fa-gem', color: 'from-fuchsia-600 to-purple-800', cat: 'puzzle', desc: 'طابق 3 جوهر متشابهة لتجميع الأرقام.' },
+            { id: 'dunk', name: 'Dunk Shot Hoop', icon: 'fa-circle-pause', color: 'from-amber-600 to-red-600', cat: 'sports', desc: 'اقفز بالكرة نحو السلة المتنقلة.' },
+            { id: 'spacedodge', name: '3-Lane Space Racer', icon: 'fa-rocket', color: 'from-sky-600 to-blue-900', cat: 'action', desc: 'غير المسار بين 3 ممرات لتفادي العقبات.' },
+            { id: 'cannon', name: 'Cannon Blast Target', icon: 'fa-burst', color: 'from-stone-600 to-zinc-800', cat: 'action', desc: 'اطلق قذائف المدفع لنظافة الأهداف.' },
+            { id: 'colorflood', name: 'Color Flood Fill', icon: 'fa-fill-drip', color: 'from-teal-500 to-cyan-700', cat: 'puzzle', desc: 'املأ اللوحة بلون واحد بأقل عدد خطوات.' },
+            { id: 'hangman', name: 'Word Guess Hangman', icon: 'fa-font', color: 'from-slate-700 to-slate-900', cat: 'puzzle', desc: 'خمن الحروف الصحيحة للكلمة السرية.' },
+            { id: 'slide', name: '15-Sliding Puzzle', icon: 'fa-grip-vertical', color: 'from-indigo-600 to-purple-800', cat: 'puzzle', desc: 'رتب الأرقام من 1 إلى 15 بالتحريك.' },
+            { id: 'snake2', name: 'Snake Boost 2', icon: 'fa-worm', color: 'from-green-500 to-teal-800', cat: 'arcade', desc: 'ثعبان متطور مع سرعات خاطفة وعوائق.' },
+            { id: 'piano', name: 'Piano Tiles Rhythm', icon: 'fa-music', color: 'from-cyan-600 to-indigo-900', cat: 'arcade', desc: 'اضغط البلاطات السوداء الساقطة على الإيقاع.' },
+            { id: 'pac', name: 'Dot Eater Maze', icon: 'fa-ghost', color: 'from-yellow-400 to-amber-600', cat: 'classic', desc: 'التقط النقاط الصفراء وتجنب الأشباح.' },
+            { id: 'crossy', name: 'Crossy Traffic', icon: 'fa-truck-monster', color: 'from-red-500 to-rose-800', cat: 'arcade', desc: 'اعبر الطرق والسكك الحديدية بحذر.' },
+            { id: 'balloon', name: 'Precision Balloon Pop', icon: 'fa-fly', color: 'from-sky-400 to-blue-600', cat: 'action', desc: 'فرقع البالونات قبل صعودها إلى الأعلى.' },
+            { id: 'sumo', name: 'Sumo Ring Push', icon: 'fa-circle-nodes', color: 'from-stone-700 to-neutral-900', cat: 'sports', desc: 'ادفع خصمك لخارج الحلبة لتربح.' },
+            { id: 'rocket', name: 'Rocket Lander', icon: 'fa-rocket', color: 'from-slate-600 to-cyan-800', cat: 'action', desc: 'اهبط بالصاروخ بسلاسة على منصة الهبوط.' },
+            { id: 'golf', name: 'Golf Hole-In-One', icon: 'fa-flag-checkered', color: 'from-emerald-500 to-green-700', cat: 'sports', desc: 'سدد الكرة نحو حفرة الجولف بمهارة.' }
+        ];
+
+        class App {
+            constructor() {
+                this.activeCategory = 'all';
+                this.searchQuery = '';
+                this.activeGameId = null;
+                this.currentGameInstance = null;
+                this.scores = JSON.parse(localStorage.getItem('51_games_scores') || '{}');
+            }
+
+            init() {
+                this.renderGamesGrid();
+                this.updateTotalScoreBadge();
+                this.bindControls();
+            }
+
+            renderGamesGrid() {
+                const grid = document.getElementById('games-grid');
+                grid.innerHTML = '';
+
+                const filtered = GAMES_LIST.filter(g => {
+                    const matchesCat = this.activeCategory === 'all' || g.cat === this.activeCategory;
+                    const matchesSearch = g.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || g.desc.includes(this.searchQuery);
+                    return matchesCat && matchesSearch;
+                });
+
+                if(filtered.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500">لا توجد ألعاب مطابقة لبحثك</div>`;
+                    return;
+                }
+
+                filtered.forEach(game => {
+                    const highScore = this.scores[game.id] || 0;
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel rounded-2xl p-3.5 flex flex-col justify-between card-hover cursor-pointer border border-slate-800/80 group relative overflow-hidden';
+                    card.onclick = () => this.launchGame(game.id);
+
+                    card.innerHTML = `
+                        <div class="absolute -top-10 -left-10 w-20 h-20 bg-gradient-to-br ${game.color} opacity-20 rounded-full blur-xl group-hover:opacity-40 transition"></div>
+                        <div>
+                            <div class="w-11 h-11 rounded-xl bg-gradient-to-tr ${game.color} flex items-center justify-center text-slate-950 text-lg mb-2 shadow-md">
+                                <i class="fa-solid ${game.icon}"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-100 text-xs sm:text-sm mb-1 group-hover:text-cyan-400 transition truncate">${game.name}</h3>
+                            <p class="text-[11px] text-slate-400 line-clamp-2 mb-2 leading-tight">${game.desc}</p>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/60 pt-2 mt-auto">
+                            <span><i class="fa-solid fa-trophy text-amber-400 ml-1"></i> ${highScore}</span>
+                            <span class="text-cyan-400 font-semibold text-[11px]">العب <i class="fa-solid fa-play text-[9px]"></i></span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            setCategory(cat) {
+                this.activeCategory = cat;
+                document.querySelectorAll('.cat-btn').forEach(btn => {
+                    btn.classList.remove('bg-cyan-500', 'text-slate-950', 'active');
+                    btn.classList.add('bg-slate-900', 'text-slate-400');
+                });
+                event.target.classList.remove('bg-slate-900', 'text-slate-400');
+                event.target.classList.add('bg-cyan-500', 'text-slate-950', 'active');
+                this.renderGamesGrid();
+            }
+
+            filterGames() {
+                this.searchQuery = document.getElementById('game-search').value;
+                this.renderGamesGrid();
+            }
+
+            launchGame(id) {
+                sound.playClick();
+                this.activeGameId = id;
+                const gameInfo = GAMES_LIST.find(g => g.id === id);
+                document.getElementById('active-game-title').innerText = gameInfo.name;
+                document.getElementById('current-score').innerText = '0';
+                document.getElementById('high-score').innerText = this.scores[id] || 0;
+
+                document.getElementById('dashboard-view').classList.add('hidden');
+                document.getElementById('game-view').classList.remove('hidden');
+
+                const stage = document.getElementById('game-stage');
+                stage.innerHTML = '';
+
+                if (gameInstances[id]) {
+                    this.currentGameInstance = new gameInstances[id](stage, (score) => this.onScoreUpdate(score));
+                    this.currentGameInstance.start();
+                } else {
+                    stage.innerHTML = `<div class="text-center text-slate-400">جاري تطوير هذه اللعبة...</div>`;
+                }
+            }
+
+            onScoreUpdate(score) {
+                document.getElementById('current-score').innerText = score;
+                const currentHigh = this.scores[this.activeGameId] || 0;
+                if (score > currentHigh) {
+                    this.scores[this.activeGameId] = score;
+                    document.getElementById('high-score').innerText = score;
+                    localStorage.setItem('51_games_scores', JSON.stringify(this.scores));
+                    this.updateTotalScoreBadge();
+                }
+            }
+
+            updateTotalScoreBadge() {
+                const total = Object.values(this.scores).reduce((a, b) => a + b, 0);
+                document.getElementById('total-score-badge').innerText = total;
+            }
+
+            restartActiveGame() {
+                sound.playClick();
+                if (this.currentGameInstance) {
+                    if (this.currentGameInstance.destroy) this.currentGameInstance.destroy();
+                    this.launchGame(this.activeGameId);
+                }
+            }
+
+            closeGame() {
+                sound.playClick();
+                if (this.currentGameInstance && this.currentGameInstance.destroy) {
+                    this.currentGameInstance.destroy();
+                    this.currentGameInstance = null;
+                }
+                document.getElementById('game-view').classList.add('hidden');
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                this.renderGamesGrid();
+            }
+
+            showDashboard() {
+                if (!document.getElementById('game-view').classList.contains('hidden')) {
+                    this.closeGame();
+                }
+            }
+
+            toggleVirtualController() {
+                const controls = document.getElementById('touch-controls');
+                controls.classList.toggle('hidden');
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(()=>{});
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            }
+
+            bindControls() {
+                const triggerKey = (type, keyName) => {
+                    if (this.currentGameInstance && this.currentGameInstance.handleInput) {
+                        this.currentGameInstance.handleInput(type, keyName);
+                    }
+                };
+
+                const bindBtn = (elementId, keyName) => {
+                    const btn = document.getElementById(elementId);
+                    if (!btn) return;
+                    btn.addEventListener('touchstart', (e) => { e.preventDefault(); triggerKey('down', keyName); });
+                    btn.addEventListener('touchend', (e) => { e.preventDefault(); triggerKey('up', keyName); });
+                    btn.addEventListener('mousedown', () => triggerKey('down', keyName));
+                    btn.addEventListener('mouseup', () => triggerKey('up', keyName));
+                };
+
+                // DIRECT RIGHT = ArrowRight, DIRECT LEFT = ArrowLeft
+                bindBtn('btn-up', 'ArrowUp');
+                bindBtn('btn-down', 'ArrowDown');
+                bindBtn('btn-left', 'ArrowLeft');
+                bindBtn('btn-right', 'ArrowRight');
+                bindBtn('btn-action-a', 'Space');
+                bindBtn('btn-action-b', 'KeyZ');
+
+                window.addEventListener('keydown', (e) => {
+                    if (this.currentGameInstance && this.currentGameInstance.handleInput) {
+                        this.currentGameInstance.handleInput('down', e.code);
+                    }
+                });
+                window.addEventListener('keyup', (e) => {
+                    if (this.currentGameInstance && this.currentGameInstance.handleInput) {
+                        this.currentGameInstance.handleInput('up', e.code);
+                    }
+                });
+            }
+        }
+
+        // Canvas Factory Helper
+        function createStandardCanvas(container, width = 500, height = 500) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.className = 'max-w-full max-h-full object-contain rounded-xl border border-slate-800 shadow-2xl bg-slate-900';
+            container.appendChild(canvas);
+            return canvas;
+        }
+
+        const gameInstances = {};
+
+        // 1. Snake Classic
+        gameInstances['snake'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS;
+                this.snake = [{x: 10, y: 10}];
+                this.food = {x: 15, y: 15};
+                this.dx = 1; this.dy = 0; this.score = 0; this.timer = null;
+            }
+            start() { this.timer = setInterval(() => this.update(), 100); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if ((key === 'ArrowUp' || key === 'KeyW') && this.dy !== 1) { this.dx = 0; this.dy = -1; }
+                if ((key === 'ArrowDown' || key === 'KeyS') && this.dy !== -1) { this.dx = 0; this.dy = 1; }
+                if ((key === 'ArrowLeft' || key === 'KeyA') && this.dx !== 1) { this.dx = -1; this.dy = 0; }
+                if ((key === 'ArrowRight' || key === 'KeyD') && this.dx !== -1) { this.dx = 1; this.dy = 0; }
+            }
+            update() {
+                const head = {x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy};
+                if (head.x < 0 || head.x >= 25 || head.y < 0 || head.y >= 25 || this.snake.some(s => s.x === head.x && s.y === head.y)) {
+                    sound.playHit(); this.snake = [{x: 10, y: 10}]; this.score = 0; this.onS(0); this.dx = 1; this.dy = 0; return;
+                }
+                this.snake.unshift(head);
+                if (head.x === this.food.x && head.y === this.food.y) {
+                    this.score += 10; this.onS(this.score); sound.playScore();
+                    this.food = {x: Math.floor(Math.random()*25), y: Math.floor(Math.random()*25)};
+                } else { this.snake.pop(); }
+                this.draw();
+            }
+            draw() {
+                this.ctx.fillStyle = '#0f172a'; this.ctx.fillRect(0,0,500,500);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.fillRect(this.food.x*20+2, this.food.y*20+2, 16, 16);
+                this.snake.forEach((s, i) => { this.ctx.fillStyle = i===0?'#00f3ff':'#00a8ff'; this.ctx.fillRect(s.x*20+1, s.y*20+1, 18, 18); });
+            }
+            destroy() { clearInterval(this.timer); }
+        };
+
+        // 2. Pong Table Tennis
+        gameInstances['pong'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 350);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS;
+                this.py = 140; this.aiY = 140; this.ball = {x:250, y:175, dx:4, dy:3};
+                this.score = 0; this.anim = null; this.up = false; this.down = false;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowUp' || key === 'KeyW') this.up = isD;
+                if (key === 'ArrowDown' || key === 'KeyS') this.down = isD;
+            }
+            update() {
+                if (this.up && this.py > 0) this.py -= 5;
+                if (this.down && this.py < 280) this.py += 5;
+                this.aiY += (this.ball.y - (this.aiY + 35)) * 0.08;
+                this.ball.x += this.ball.dx; this.ball.y += this.ball.dy;
+                if (this.ball.y < 5 || this.ball.y > 345) this.ball.dy *= -1;
+                if (this.ball.x <= 25 && this.ball.y >= this.py && this.ball.y <= this.py + 70) { this.ball.dx = Math.abs(this.ball.dx)+0.2; sound.playTone(300,'sine',0.05); }
+                if (this.ball.x >= 475 && this.ball.y >= this.aiY && this.ball.y <= this.aiY + 70) { this.ball.dx = -Math.abs(this.ball.dx)-0.2; }
+                if (this.ball.x < 0) { sound.playHit(); this.ball = {x:250, y:175, dx:4, dy:3}; this.score = 0; this.onS(0); }
+                if (this.ball.x > 500) { sound.playScore(); this.score += 1; this.onS(this.score); this.ball = {x:250, y:175, dx:-4, dy:3}; }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,500,350);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(10, this.py, 12, 70);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.fillRect(478, this.aiY, 12, 70);
+                this.ctx.fillStyle = '#fff'; this.ctx.fillRect(this.ball.x-5, this.ball.y-5, 10, 10);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 3. Flappy Bird
+        gameInstances['flappy'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS;
+                this.by = 250; this.vy = 0; this.pipes = []; this.score = 0; this.frame = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && (key === 'Space' || key === 'ArrowUp')) { this.vy = -7; sound.playTone(400,'sine',0.08); }
+            }
+            update() {
+                this.frame++; this.vy += 0.45; this.by += this.vy;
+                if (this.frame % 90 === 0) this.pipes.push({ x: 400, top: Math.random()*200+50, gap: 130 });
+                this.pipes.forEach(p => p.x -= 2.5);
+                this.pipes = this.pipes.filter(p => p.x > -60);
+                if (this.by > 480 || this.by < 0) this.reset();
+                this.pipes.forEach(p => {
+                    if (p.x < 180 && p.x + 50 > 140) {
+                        if (this.by < p.top || this.by > p.top + p.gap) this.reset();
+                    }
+                    if (!p.passed && p.x < 140) { p.passed = true; this.score++; this.onS(this.score); sound.playScore(); }
+                });
+            }
+            reset() { sound.playHit(); this.by = 250; this.vy = 0; this.pipes = []; this.score = 0; this.onS(0); }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00ff66';
+                this.pipes.forEach(p => { this.ctx.fillRect(p.x, 0, 50, p.top); this.ctx.fillRect(p.x, p.top+p.gap, 50, 500); });
+                this.ctx.fillStyle = '#ffe600'; this.ctx.beginPath(); this.ctx.arc(160, this.by, 12, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 4. Space Invaders
+        gameInstances['space'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS;
+                this.px = 230; this.lasers = []; this.enemies = []; this.score = 0; this.anim = null;
+                this.left = false; this.right = false; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+                if (isD && (key === 'Space' || key === 'KeyZ')) { this.lasers.push({x: this.px+18, y: 440}); sound.playTone(800,'square',0.05); }
+            }
+            update() {
+                this.frame++;
+                if (this.left && this.px > 0) this.px -= 6;
+                if (this.right && this.px < 460) this.px += 6;
+                this.lasers.forEach(l => l.y -= 8); this.lasers = this.lasers.filter(l => l.y > -10);
+                if (this.frame % 45 === 0) this.enemies.push({x: Math.random()*460, y:-20});
+                this.enemies.forEach(e => e.y += 2);
+                this.enemies.forEach((e, ei) => {
+                    this.lasers.forEach((l, li) => {
+                        if (Math.hypot(e.x+15-l.x, e.y+15-l.y) < 20) {
+                            this.enemies.splice(ei,1); this.lasers.splice(li,1);
+                            this.score += 15; this.onS(this.score); sound.playScore();
+                        }
+                    });
+                    if (e.y > 500) { this.enemies.splice(ei,1); sound.playHit(); }
+                });
+            }
+            draw() {
+                this.ctx.fillStyle = '#05070f'; this.ctx.fillRect(0,0,500,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, 450, 40, 15);
+                this.ctx.fillStyle = '#ff00ff'; this.lasers.forEach(l => this.ctx.fillRect(l.x, l.y, 4, 10));
+                this.ctx.fillStyle = '#ff3366'; this.enemies.forEach(e => this.ctx.fillRect(e.x, e.y, 30, 20));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 5. Brick Breaker
+        gameInstances['breakout'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS;
+                this.px = 200; this.ball = {x:250, y:400, dx:3.5, dy:-3.5};
+                this.bricks = []; this.score = 0; this.anim = null; this.left = false; this.right = false;
+                this.initBricks();
+            }
+            initBricks() {
+                this.bricks = [];
+                for(let r=0; r<5; r++) for(let col=0; col<8; col++) this.bricks.push({x: col*60+10, y: r*25+40, active: true});
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                if (this.left && this.px > 0) this.px -= 7;
+                if (this.right && this.px < 400) this.px += 7;
+                this.ball.x += this.ball.dx; this.ball.y += this.ball.dy;
+                if (this.ball.x < 5 || this.ball.x > 495) this.ball.dx *= -1;
+                if (this.ball.y < 5) this.ball.dy *= -1;
+                if (this.ball.y >= 460 && this.ball.y <= 475 && this.ball.x >= this.px && this.ball.x <= this.px+100) {
+                    this.ball.dy = -Math.abs(this.ball.dy); sound.playTone(300,'sine',0.05);
+                }
+                this.bricks.forEach(b => {
+                    if (b.active && this.ball.x >= b.x && this.ball.x <= b.x+55 && this.ball.y >= b.y && this.ball.y <= b.y+20) {
+                        b.active = false; this.ball.dy *= -1; this.score += 20; this.onS(this.score); sound.playScore();
+                    }
+                });
+                if (this.ball.y > 500) { sound.playHit(); this.ball = {x:250,y:400,dx:3.5,dy:-3.5}; this.score = 0; this.onS(0); this.initBricks(); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,500,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, 470, 100, 12);
+                this.ctx.fillStyle = '#fff'; this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, 6, 0, Math.PI*2); this.ctx.fill();
+                this.bricks.forEach(b => { if (b.active) { this.ctx.fillStyle = '#ff0055'; this.ctx.fillRect(b.x, b.y, 55, 20); } });
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 6. Tetris Blocks
+        gameInstances['tetris'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.score = 0;
+                this.grid = Array(20).fill(0).map(() => Array(10).fill(0));
+                this.piece = {x: 3, y: 0, shape: [[1,1,1,1]]};
+                this.timer = null; this.buildUI();
+            }
+            buildUI() {
+                this.container.innerHTML = `<div id="tetris-board" class="grid grid-cols-10 gap-0.5 bg-slate-900 p-2 rounded-xl border border-slate-800 w-64 h-[400px]"></div>`;
+                this.render();
+            }
+            start() { this.timer = setInterval(() => this.drop(), 500); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if (key === 'ArrowLeft' && this.canMove(-1, 0)) this.piece.x--;
+                if (key === 'ArrowRight' && this.canMove(1, 0)) this.piece.x++;
+                if (key === 'ArrowDown') this.drop();
+                this.render();
+            }
+            canMove(dx, dy) {
+                for (let r = 0; r < this.piece.shape.length; r++) {
+                    for (let c = 0; c < this.piece.shape[r].length; c++) {
+                        if (this.piece.shape[r][c]) {
+                            let nx = this.piece.x + c + dx;
+                            let ny = this.piece.y + r + dy;
+                            if (nx < 0 || nx >= 10 || ny >= 20 || (ny >= 0 && this.grid[ny][nx])) return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            drop() {
+                if (this.canMove(0, 1)) { this.piece.y++; } else {
+                    this.freeze(); this.score += 10; this.onS(this.score); sound.playScore();
+                    this.piece = {x: 3, y: 0, shape: [[1,1,1,1]]};
+                }
+                this.render();
+            }
+            freeze() {
+                for (let r = 0; r < this.piece.shape.length; r++) {
+                    for (let c = 0; c < this.piece.shape[r].length; c++) {
+                        if (this.piece.shape[r][c]) {
+                            if (this.piece.y + r < 0) return;
+                            this.grid[this.piece.y + r][this.piece.x + c] = 1;
+                        }
+                    }
+                }
+            }
+            render() {
+                const board = document.getElementById('tetris-board');
+                if(!board) return; board.innerHTML = '';
+                for (let r = 0; r < 20; r++) {
+                    for (let c = 0; c < 10; c++) {
+                        let filled = this.grid[r][c];
+                        if (r >= this.piece.y && r < this.piece.y + this.piece.shape.length &&
+                            c >= this.piece.x && c < this.piece.x + this.piece.shape[0].length) {
+                            if (this.piece.shape[r - this.piece.y][c - this.piece.x]) filled = 2;
+                        }
+                        const cell = document.createElement('div');
+                        cell.className = `rounded-sm ${filled === 1 ? 'bg-cyan-500' : filled === 2 ? 'bg-amber-400' : 'bg-slate-800/40'}`;
+                        board.appendChild(cell);
+                    }
+                }
+            }
+            destroy() { clearInterval(this.timer); }
+        };
+
+        // 7. 2048 Puzzle
+        gameInstances['g2048'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS;
+                this.grid = Array(4).fill(0).map(() => Array(4).fill(0));
+                this.score = 0; this.buildUI(); this.addTile(); this.addTile(); this.updateUI();
+            }
+            buildUI() { this.container.innerHTML = `<div id="grid-2048" class="grid grid-cols-4 gap-2 bg-slate-900 p-3 rounded-2xl w-72 h-72 border border-slate-800"></div>`; }
+            addTile() {
+                let empty = [];
+                for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (this.grid[r][c] === 0) empty.push({ r, c });
+                if (empty.length > 0) {
+                    let spot = empty[Math.floor(Math.random() * empty.length)];
+                    this.grid[spot.r][spot.c] = Math.random() > 0.1 ? 2 : 4;
+                }
+            }
+            start() {}
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                let moved = false;
+                if (key === 'ArrowLeft') moved = this.slideLeft();
+                if (key === 'ArrowRight') moved = this.slideRight();
+                if (key === 'ArrowUp') moved = this.slideUp();
+                if (key === 'ArrowDown') moved = this.slideDown();
+                if (moved) { sound.playScore(); this.addTile(); this.updateUI(); this.onS(this.score); }
+            }
+            slideLeft() {
+                let moved = false;
+                for (let r = 0; r < 4; r++) {
+                    let row = this.grid[r].filter(v => v !== 0);
+                    for (let c = 0; c < row.length - 1; c++) {
+                        if (row[c] === row[c + 1]) { row[c] *= 2; this.score += row[c]; row.splice(c + 1, 1); }
+                    }
+                    while (row.length < 4) row.push(0);
+                    if (JSON.stringify(this.grid[r]) !== JSON.stringify(row)) moved = true;
+                    this.grid[r] = row;
+                }
+                return moved;
+            }
+            slideRight() { this.grid.forEach(r => r.reverse()); let m = this.slideLeft(); this.grid.forEach(r => r.reverse()); return m; }
+            slideUp() { this.trans(); let m = this.slideLeft(); this.trans(); return m; }
+            slideDown() { this.trans(); let m = this.slideRight(); this.trans(); return m; }
+            trans() { for (let r = 0; r < 4; r++) for (let c = r + 1; c < 4; c++) [this.grid[r][c], this.grid[c][r]] = [this.grid[c][r], this.grid[r][c]]; }
+            updateUI() {
+                const el = document.getElementById('grid-2048'); if(!el) return; el.innerHTML = '';
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        const val = this.grid[r][c];
+                        const tile = document.createElement('div');
+                        tile.className = `flex items-center justify-center rounded-xl font-black text-lg ${val === 0 ? 'bg-slate-800/40' : 'bg-cyan-500 text-slate-950 shadow'}`;
+                        tile.innerText = val > 0 ? val : '';
+                        el.appendChild(tile);
+                    }
+                }
+            }
+            destroy() {}
+        };
+
+        // 8. Tic Tac Toe AI
+        gameInstances['tictactoe'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.board = Array(9).fill(null); this.score = 0; this.buildUI();
+            }
+            buildUI() {
+                this.container.innerHTML = `<div id="ttt-grid" class="grid grid-cols-3 gap-3 w-72 h-72 bg-slate-900 p-3 rounded-2xl border border-slate-800"></div>`; this.render();
+            }
+            render() {
+                const grid = document.getElementById('ttt-grid'); if(!grid) return; grid.innerHTML = '';
+                this.board.forEach((val, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-slate-800 hover:bg-slate-700 text-3xl font-extrabold rounded-xl flex items-center justify-center text-cyan-400 border border-slate-700/50';
+                    btn.innerText = val || ''; btn.onclick = () => this.makeMove(idx);
+                    grid.appendChild(btn);
+                });
+            }
+            makeMove(i) {
+                if (this.board[i] || this.checkWinner()) return;
+                this.board[i] = 'X'; sound.playClick();
+                if (!this.checkWinner() && this.board.includes(null)) {
+                    let empty = this.board.map((v, idx) => v === null ? idx : null).filter(v => v !== null);
+                    this.board[empty[Math.floor(Math.random() * empty.length)]] = 'O';
+                }
+                this.render();
+                if (this.checkWinner() === 'X') { this.score += 100; this.onS(this.score); sound.playWin(); }
+            }
+            checkWinner() {
+                const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                for (let [a,b,c] of lines) if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) return this.board[a];
+                return null;
+            }
+            start() {} destroy() {}
+        };
+
+        // 9. Memory Match
+        gameInstances['memory'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.emojis = ['🚀','👾','⭐','🔥','🎮','💎','⚡','🎯'];
+                this.cards = [...this.emojis, ...this.emojis].sort(() => Math.random() - 0.5);
+                this.flipped = []; this.matched = []; this.score = 0; this.buildUI();
+            }
+            buildUI() { this.container.innerHTML = `<div id="mem-grid" class="grid grid-cols-4 gap-3 w-80 bg-slate-900 p-4 rounded-2xl border border-slate-800"></div>`; this.render(); }
+            render() {
+                const grid = document.getElementById('mem-grid'); if(!grid) return; grid.innerHTML = '';
+                this.cards.forEach((emoji, idx) => {
+                    const card = document.createElement('div');
+                    const isF = this.flipped.includes(idx) || this.matched.includes(idx);
+                    card.className = `h-16 flex items-center justify-center text-2xl font-bold rounded-xl cursor-pointer ${isF ? 'bg-cyan-600 text-white' : 'bg-slate-800 border border-slate-700'}`;
+                    card.innerText = isF ? emoji : '?'; card.onclick = () => this.flip(idx);
+                    grid.appendChild(card);
+                });
+            }
+            flip(idx) {
+                if (this.flipped.length === 2 || this.flipped.includes(idx) || this.matched.includes(idx)) return;
+                sound.playClick(); this.flipped.push(idx); this.render();
+                if (this.flipped.length === 2) {
+                    const [f, s] = this.flipped;
+                    if (this.cards[f] === this.cards[s]) {
+                        this.matched.push(f, s); this.score += 50; this.onS(this.score); sound.playScore(); this.flipped = []; this.render();
+                    } else { setTimeout(() => { this.flipped = []; this.render(); }, 800); }
+                }
+            }
+            start() {} destroy() {}
+        };
+
+        // 10. Rain Block Dodge
+        gameInstances['rain'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 180; this.blocks = []; this.score = 0; this.anim = null;
+                this.left = false; this.right = false; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                this.frame++;
+                if (this.left && this.px > 0) this.px -= 6;
+                if (this.right && this.px < 360) this.px += 6;
+                if (this.frame % 20 === 0) this.blocks.push({ x: Math.random()*360, y: -20, w: 30, h: 20 });
+                this.blocks.forEach(b => b.y += 4);
+                this.blocks.forEach(b => {
+                    if (b.x < this.px + 40 && b.x + b.w > this.px && b.y < 460 && b.y + b.h > 440) {
+                        sound.playHit(); this.score = 0; this.onS(0); this.blocks = [];
+                    }
+                });
+                if (this.frame % 15 === 0) { this.score += 5; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#070a12'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, 440, 40, 20);
+                this.ctx.fillStyle = '#ff0055'; this.blocks.forEach(b => this.ctx.fillRect(b.x, b.y, b.w, b.h));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 11. Whack A Mole
+        gameInstances['mole'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.activeMole = -1; this.score = 0; this.timer = null; this.buildUI();
+            }
+            buildUI() { this.container.innerHTML = `<div id="mole-grid" class="grid grid-cols-3 gap-4 w-72 h-72 bg-slate-900 p-4 rounded-2xl border border-slate-800"></div>`; }
+            start() { this.timer = setInterval(() => { this.activeMole = Math.floor(Math.random() * 9); this.render(); }, 800); }
+            render() {
+                const grid = document.getElementById('mole-grid'); if(!grid) return; grid.innerHTML = '';
+                for(let i=0; i<9; i++) {
+                    const hole = document.createElement('button');
+                    hole.className = `rounded-full flex items-center justify-center text-3xl transition-all border ${i === this.activeMole ? 'bg-amber-600 border-amber-400' : 'bg-slate-800 border-slate-700'}`;
+                    hole.innerText = i === this.activeMole ? '🐹' : ''; hole.onclick = () => this.hit(i);
+                    grid.appendChild(hole);
+                }
+            }
+            hit(i) { if (i === this.activeMole) { sound.playScore(); this.score += 10; this.onS(this.score); this.activeMole = -1; this.render(); } }
+            destroy() { clearInterval(this.timer); }
+        };
+
+        // 12. Car Racing Dodge
+        gameInstances['car'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 350, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.carX = 150; this.traffic = []; this.score = 0; this.anim = null;
+                this.left = false; this.right = false; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                this.frame++;
+                if (this.left && this.carX > 40) this.carX -= 5;
+                if (this.right && this.carX < 260) this.carX += 5;
+                if (this.frame % 40 === 0) this.traffic.push({ x: Math.random()*200+50, y: -60 });
+                this.traffic.forEach(t => t.y += 5);
+                this.traffic.forEach(t => {
+                    if (Math.abs(t.x - this.carX) < 35 && t.y > 380 && t.y < 460) {
+                        sound.playHit(); this.score = 0; this.onS(0); this.traffic = [];
+                    }
+                });
+                if (this.frame % 10 === 0) { this.score += 2; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#1e293b'; this.ctx.fillRect(0,0,350,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.carX, 400, 40, 60);
+                this.ctx.fillStyle = '#ff0055'; this.traffic.forEach(t => this.ctx.fillRect(t.x, t.y, 40, 60));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 13. Dino Runner
+        gameInstances['dino'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 300);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.dy = 220; this.vy = 0; this.jumping = false; this.obstacles = []; this.score = 0; this.frame = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && (key === 'Space' || key === 'ArrowUp') && !this.jumping) {
+                    this.vy = -12; this.jumping = true; sound.playTone(500,'sine',0.1);
+                }
+            }
+            update() {
+                this.frame++; this.vy += 0.6; this.dy += this.vy;
+                if (this.dy >= 220) { this.dy = 220; this.jumping = false; }
+                if (this.frame % 80 === 0) this.obstacles.push({ x: 500, w: 20, h: 35 });
+                this.obstacles.forEach(o => o.x -= 5); this.obstacles = this.obstacles.filter(o => o.x > -20);
+                this.obstacles.forEach(o => {
+                    if (o.x < 70 && o.x + o.w > 40 && this.dy + 30 > 255 - o.h) {
+                        sound.playHit(); this.score = 0; this.onS(0); this.obstacles = [];
+                    }
+                });
+                if (this.frame % 10 === 0) { this.score += 1; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,500,300);
+                this.ctx.strokeStyle = '#334155'; this.ctx.beginPath(); this.ctx.moveTo(0,250); this.ctx.lineTo(500,250); this.ctx.stroke();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(40, this.dy, 30, 30);
+                this.ctx.fillStyle = '#ff0055'; this.obstacles.forEach(o => this.ctx.fillRect(o.x, 250 - o.h, o.w, o.h));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 14. Simon Says
+        gameInstances['simon'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.seq = []; this.uSeq = []; this.score = 0;
+                this.colors = ['#ff0055', '#00f3ff', '#ffe600', '#00ff66']; this.buildUI();
+            }
+            buildUI() { this.container.innerHTML = `<div id="simon-grid" class="grid grid-cols-2 gap-4 w-64 h-64 bg-slate-900 p-4 rounded-2xl border border-slate-800"></div>`; this.render(); }
+            render() {
+                const grid = document.getElementById('simon-grid'); if(!grid) return; grid.innerHTML = '';
+                this.colors.forEach((col, idx) => {
+                    const btn = document.createElement('button'); btn.className = 'rounded-2xl transition-all shadow-lg active:scale-95';
+                    btn.style.backgroundColor = col; btn.onclick = () => this.click(idx); grid.appendChild(btn);
+                });
+            }
+            start() { this.next(); }
+            next() { this.uSeq = []; this.seq.push(Math.floor(Math.random()*4)); this.play(); }
+            play() { let i = 0; const t = setInterval(() => { if (i >= this.seq.length) { clearInterval(t); return; } sound.playTone(300+this.seq[i]*100,'sine',0.2); i++; }, 600); }
+            click(idx) {
+                sound.playTone(300+idx*100,'sine',0.1); this.uSeq.push(idx);
+                if (this.uSeq[this.uSeq.length-1] !== this.seq[this.uSeq.length-1]) {
+                    sound.playHit(); this.seq = []; this.score = 0; this.onS(0); setTimeout(() => this.next(), 1000); return;
+                }
+                if (this.uSeq.length === this.seq.length) { this.score += 25; this.onS(this.score); sound.playWin(); setTimeout(() => this.next(), 1000); }
+            }
+            destroy() {}
+        };
+
+        // 15. Frogger Crossing
+        gameInstances['frogger'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.fx = 180; this.fy = 360; this.cars = []; this.score = 0; this.anim = null;
+                for(let i=0; i<4; i++) this.cars.push({ x: i*100, y: 100+i*60, speed: (i%2===0?3:-3) });
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if (key === 'ArrowUp' && this.fy > 10) this.fy -= 40;
+                if (key === 'ArrowDown' && this.fy < 360) this.fy += 40;
+                if (key === 'ArrowLeft' && this.fx > 10) this.fx -= 40;
+                if (key === 'ArrowRight' && this.fx < 350) this.fx += 40;
+            }
+            update() {
+                this.cars.forEach(c => {
+                    c.x += c.speed; if (c.x > 400) c.x = -50; if (c.x < -50) c.x = 400;
+                    if (Math.hypot(c.x - this.fx, c.y - this.fy) < 30) {
+                        sound.playHit(); this.fx = 180; this.fy = 360; this.score = 0; this.onS(0);
+                    }
+                });
+                if (this.fy < 40) {
+                    sound.playWin(); this.score += 50; this.onS(this.score); this.fx = 180; this.fy = 360;
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#00ff66'; this.ctx.fillRect(this.fx, this.fy, 30, 30);
+                this.ctx.fillStyle = '#ff0055'; this.cars.forEach(c => this.ctx.fillRect(c.x, c.y, 40, 25));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 16. Connect 4 AI
+        gameInstances['connect4'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.grid = Array(6).fill(null).map(() => Array(7).fill(null)); this.score = 0; this.buildUI();
+            }
+            buildUI() { this.container.innerHTML = `<div id="c4-grid" class="grid grid-cols-7 gap-2 bg-slate-900 p-3 rounded-2xl border border-slate-800 w-80"></div>`; this.render(); }
+            render() {
+                const grid = document.getElementById('c4-grid'); if(!grid) return; grid.innerHTML = '';
+                for(let r=0; r<6; r++) for(let col=0; col<7; col++) {
+                    const cell = document.createElement('button'); const val = this.grid[r][col];
+                    cell.className = `w-9 h-9 rounded-full border border-slate-700 ${val === 'red' ? 'bg-rose-500' : val === 'yellow' ? 'bg-amber-400' : 'bg-slate-800'}`;
+                    cell.onclick = () => this.drop(col); grid.appendChild(cell);
+                }
+            }
+            drop(col) {
+                for (let r = 5; r >= 0; r--) {
+                    if (!this.grid[r][col]) {
+                        this.grid[r][col] = 'red'; sound.playClick(); this.render();
+                        setTimeout(() => this.aiMove(), 300); return;
+                    }
+                }
+            }
+            aiMove() {
+                let valid = []; for(let c=0; c<7; c++) if(!this.grid[0][c]) valid.push(c);
+                if(valid.length === 0) return;
+                let c = valid[Math.floor(Math.random() * valid.length)];
+                for (let r = 5; r >= 0; r--) { if (!this.grid[r][c]) { this.grid[r][c] = 'yellow'; this.render(); return; } }
+            }
+            start() {} destroy() {}
+        };
+
+        // 17. RPS Extreme
+        gameInstances['rps'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.score = 0;
+                this.choices = [{ name: 'حجر ✊', beats: 'قص' }, { name: 'ورقة ✋', beats: 'حجر' }, { name: 'قص ✌️', beats: 'ورقة' }];
+                this.buildUI();
+            }
+            buildUI() {
+                this.container.innerHTML = `
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center w-80 shadow-2xl">
+                        <div id="rps-res" class="text-lg font-bold text-cyan-400 mb-6">اختر حركتك!</div>
+                        <div class="flex justify-center gap-3">
+                            ${this.choices.map((c, i) => `<button onclick="app.currentGameInstance.play(${i})" class="bg-slate-800 text-2xl p-4 rounded-xl border border-slate-700">${c.name.split(' ')[1]}</button>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            play(i) {
+                const ai = Math.floor(Math.random() * 3); const pChoice = this.choices[i]; const aiChoice = this.choices[ai];
+                const resEl = document.getElementById('rps-res');
+                if (pChoice.name === aiChoice.name) { resEl.innerText = `تعادل! كلاكما ${pChoice.name}`; }
+                else if (pChoice.beats === aiChoice.name.split(' ')[0]) {
+                    sound.playScore(); this.score += 30; this.onS(this.score); resEl.innerText = `فزت! ${pChoice.name} يهزم ${aiChoice.name}`;
+                } else { sound.playHit(); resEl.innerText = `خسرت! ${aiChoice.name} يهزم ${pChoice.name}`; }
+            }
+            start() {} destroy() {}
+        };
+
+        // 18. Endless Jumper
+        gameInstances['runner'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 180; this.py = 400; this.vy = 0; this.platforms = [{x:150, y:450, w:100}];
+                this.score = 0; this.anim = null; this.left = false; this.right = false;
+                for(let i=0; i<5; i++) this.platforms.push({ x: Math.random()*300, y: 350 - i*90, w: 80 });
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                if (this.left && this.px > 0) this.px -= 5;
+                if (this.right && this.px < 370) this.px += 5;
+                this.vy += 0.3; this.py += this.vy;
+                this.platforms.forEach(p => {
+                    if (this.vy > 0 && this.px + 20 > p.x && this.px < p.x + p.w && this.py + 30 >= p.y && this.py + 30 <= p.y + 10) {
+                        this.vy = -9; sound.playTone(400,'sine',0.05);
+                    }
+                });
+                if (this.py < 200) {
+                    let diff = 200 - this.py; this.py = 200;
+                    this.platforms.forEach(p => { p.y += diff; if (p.y > 500) { p.y = 0; p.x = Math.random()*300; this.score += 10; this.onS(this.score); } });
+                }
+                if (this.py > 500) { sound.playHit(); this.py = 400; this.vy = -9; this.score = 0; this.onS(0); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, this.py, 25, 25);
+                this.ctx.fillStyle = '#00ff66'; this.platforms.forEach(p => this.ctx.fillRect(p.x, p.y, p.w, 10));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 19. Archery Shooting
+        gameInstances['archery'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 350);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.targetY = 100; this.dir = 2; this.arrow = null; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && key === 'Space' && !this.arrow) { this.arrow = { x: 50, y: 175 }; sound.playTone(600,'sine',0.08); }
+            }
+            update() {
+                this.targetY += this.dir; if (this.targetY < 40 || this.targetY > 240) this.dir *= -1;
+                if (this.arrow) {
+                    this.arrow.x += 12;
+                    if (this.arrow.x >= 420) {
+                        const dist = Math.abs(this.arrow.y - (this.targetY + 40));
+                        if (dist < 40) { sound.playScore(); this.score += 50 - Math.floor(dist); this.onS(this.score); } else { sound.playHit(); }
+                        this.arrow = null;
+                    }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,500,350);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.fillRect(430, this.targetY, 20, 80);
+                if (this.arrow) { this.ctx.fillStyle = '#ffe600'; this.ctx.fillRect(this.arrow.x, this.arrow.y, 25, 4); }
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 20. Cave Helicopter
+        gameInstances['helicopter'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.hy = 250; this.vy = 0; this.score = 0; this.frame = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && (key === 'Space' || key === 'ArrowUp')) { this.vy = -5; sound.playTone(350,'sine',0.05); } }
+            update() {
+                this.frame++; this.vy += 0.3; this.hy += this.vy;
+                if (this.hy < 20 || this.hy > 470) { sound.playHit(); this.hy = 250; this.vy = 0; this.score = 0; this.onS(0); }
+                if (this.frame % 10 === 0) { this.score += 1; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0f172a'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#334155'; this.ctx.fillRect(0,0,400,20); this.ctx.fillRect(0,480,400,20);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(100, this.hy, 30, 20);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 21. Minesweeper
+        gameInstances['mines'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.board = []; this.score = 0; this.init(); this.buildUI();
+            }
+            init() {
+                this.board = Array(8).fill(0).map(() => Array(8).fill(0).map(() => ({ mine: Math.random()<0.15, rev: false })));
+            }
+            buildUI() {
+                this.container.innerHTML = `<div id="mine-grid" class="grid grid-cols-8 gap-1 w-72 bg-slate-900 p-3 rounded-2xl border border-slate-800"></div>`; this.render();
+            }
+            render() {
+                const grid = document.getElementById('mine-grid'); if(!grid) return; grid.innerHTML = '';
+                for(let r=0; r<8; r++) for(let col=0; col<8; col++) {
+                    const c = this.board[r][col]; const btn = document.createElement('button');
+                    btn.className = `w-7 h-7 rounded text-xs font-bold ${c.rev ? 'bg-slate-800 text-cyan-400' : 'bg-slate-700'}`;
+                    btn.innerText = c.rev ? (c.mine ? '💣' : '•') : '?';
+                    btn.onclick = () => {
+                        if (c.rev) return; c.rev = true;
+                        if (c.mine) { sound.playHit(); alert('انفجر اللغم!'); this.init(); } else { sound.playClick(); this.score += 10; this.onS(this.score); }
+                        this.render();
+                    };
+                    grid.appendChild(btn);
+                }
+            }
+            start() {} destroy() {}
+        };
+
+        // 22. Bubble Shooter
+        gameInstances['bubble'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.bx = 200; this.by = 450; this.bvy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && this.by === 450) { this.bvy = -8; sound.playTone(500,'sine',0.05); } }
+            update() {
+                if (this.bvy !== 0) {
+                    this.by += this.bvy;
+                    if (this.by < 50) { sound.playScore(); this.score += 20; this.onS(this.score); this.by = 450; this.bvy = 0; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff00ff'; this.ctx.beginPath(); this.ctx.arc(200, 40, 15, 0, Math.PI*2); this.ctx.fill();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.beginPath(); this.ctx.arc(this.bx, this.by, 15, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 23. Coin Catcher
+        gameInstances['coins'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 170; this.coins = []; this.score = 0; this.anim = null;
+                this.left = false; this.right = false; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                this.frame++;
+                if (this.left && this.px > 0) this.px -= 6;
+                if (this.right && this.px < 340) this.px += 6;
+                if (this.frame % 30 === 0) this.coins.push({ x: Math.random()*360, y: -20 });
+                this.coins.forEach(cn => cn.y += 4);
+                this.coins.forEach((cn, i) => {
+                    if (Math.hypot(cn.x - (this.px+30), cn.y - 460) < 30) {
+                        this.coins.splice(i,1); this.score += 10; this.onS(this.score); sound.playScore();
+                    }
+                });
+            }
+            draw() {
+                this.ctx.fillStyle = '#0f172a'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, 450, 60, 15);
+                this.ctx.fillStyle = '#ffe600'; this.coins.forEach(cn => { this.ctx.beginPath(); this.ctx.arc(cn.x, cn.y, 10, 0, Math.PI*2); this.ctx.fill(); });
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 24. Ninja Slice
+        gameInstances['ninja'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.fruits = []; this.score = 0; this.anim = null; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down') {
+                    this.fruits.forEach((f, i) => {
+                        this.fruits.splice(i, 1); this.score += 15; this.onS(this.score); sound.playScore();
+                    });
+                }
+            }
+            update() {
+                this.frame++;
+                if (this.frame % 40 === 0) this.fruits.push({ x: Math.random()*300+50, y: 500, vy: -10 });
+                this.fruits.forEach(f => { f.y += f.vy; f.vy += 0.2; });
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff0055'; this.fruits.forEach(f => { this.ctx.beginPath(); this.ctx.arc(f.x, f.y, 18, 0, Math.PI*2); this.ctx.fill(); });
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 25. Color Switch
+        gameInstances['colorswitch'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.by = 400; this.vy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && (key === 'Space' || key === 'ArrowUp')) { this.vy = -6; sound.playTone(450,'sine',0.05); } }
+            update() {
+                this.vy += 0.25; this.by += this.vy;
+                if (this.by > 480) { this.by = 400; this.vy = 0; this.score = 0; this.onS(0); sound.playHit(); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.strokeStyle = '#00f3ff'; this.ctx.lineWidth = 8; this.ctx.beginPath(); this.ctx.arc(200, 200, 60, 0, Math.PI*2); this.ctx.stroke();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.beginPath(); this.ctx.arc(200, this.by, 12, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 26. Tower Stacker
+        gameInstances['stacker'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.blocks = [{x: 100, y: 460, w: 200}]; this.curX = 0; this.dir = 4; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && key === 'Space') {
+                    const prev = this.blocks[this.blocks.length - 1];
+                    this.blocks.push({ x: this.curX, y: 460 - this.blocks.length * 25, w: prev.w });
+                    this.score += 20; this.onS(this.score); sound.playScore();
+                }
+            }
+            update() {
+                this.curX += this.dir; if (this.curX < 0 || this.curX > 200) this.dir *= -1;
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.blocks.forEach(b => { this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(b.x, b.y, b.w, 20); });
+                this.ctx.fillStyle = '#ff00ff'; this.ctx.fillRect(this.curX, 460 - this.blocks.length * 25, 150, 20);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 27. Knife Throw
+        gameInstances['knife'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.ky = 420; this.kvy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && this.ky === 420) { this.kvy = -12; sound.playTone(600,'sine',0.05); } }
+            update() {
+                if (this.kvy !== 0) {
+                    this.ky += this.kvy;
+                    if (this.ky < 180) { sound.playScore(); this.score += 15; this.onS(this.score); this.ky = 420; this.kvy = 0; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.beginPath(); this.ctx.arc(200, 150, 40, 0, Math.PI*2); this.ctx.fill();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(196, this.ky, 8, 30);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 28. Maze Escape
+        gameInstances['maze'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 0; this.py = 0; this.score = 0;
+            }
+            start() { this.draw(); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if (key === 'ArrowRight' && this.px < 9) this.px++;
+                if (key === 'ArrowLeft' && this.px > 0) this.px--;
+                if (key === 'ArrowDown' && this.py < 9) this.py++;
+                if (key === 'ArrowUp' && this.py > 0) this.py--;
+                sound.playClick();
+                if (this.px === 9 && this.py === 9) { sound.playWin(); this.score += 100; this.onS(this.score); this.px = 0; this.py = 0; }
+                this.draw();
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#00ff66'; this.ctx.fillRect(360+5, 360+5, 30, 30);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px * 40 + 5, this.py * 40 + 5, 30, 30);
+            }
+            destroy() {}
+        };
+
+        // 29. Math Speed Quiz
+        gameInstances['math'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.score = 0; this.buildUI(); this.gen();
+            }
+            buildUI() {
+                this.container.innerHTML = `
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center w-80 shadow-2xl">
+                        <div id="math-eq" class="text-3xl font-black text-cyan-400 mb-6">? + ?</div>
+                        <div id="math-opts" class="grid grid-cols-2 gap-3"></div>
+                    </div>
+                `;
+            }
+            gen() {
+                const a = Math.floor(Math.random()*15)+1; const b = Math.floor(Math.random()*15)+1; const ans = a + b;
+                const eq = document.getElementById('math-eq'); if(!eq) return; eq.innerText = `${a} + ${b} = ?`;
+                const opts = document.getElementById('math-opts'); opts.innerHTML = '';
+                [ans, ans+2, ans-1, ans+4].sort(()=>Math.random()-0.5).forEach(o => {
+                    const btn = document.createElement('button'); btn.className = 'bg-slate-800 py-3 rounded-xl font-bold text-lg text-slate-200 border border-slate-700';
+                    btn.innerText = o; btn.onclick = () => {
+                        if (o === ans) { sound.playScore(); this.score += 20; this.onS(this.score); } else { sound.playHit(); }
+                        this.gen();
+                    };
+                    opts.appendChild(btn);
+                });
+            }
+            start() {} destroy() {}
+        };
+
+        // 30. Letter Shooter
+        gameInstances['typing'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.target = 'A'; this.ty = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down') { sound.playScore(); this.score += 10; this.onS(this.score); this.ty = 0; }
+            }
+            update() {
+                this.ty += 2; if (this.ty > 500) { sound.playHit(); this.ty = 0; }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.font = '30px Cairo'; this.ctx.fillText(this.target, 190, this.ty);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 31. Jump Rope Timing
+        gameInstances['rope'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.ry = 0; this.py = 280; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && key === 'Space' && this.py === 280) {
+                    this.py = 220; sound.playTone(400,'sine',0.05); setTimeout(() => this.py = 280, 250);
+                }
+            }
+            update() {
+                this.ry = (this.ry + 0.1) % (Math.PI * 2);
+                if (Math.sin(this.ry) > 0.95 && this.py === 280) {
+                    sound.playHit(); this.score = 0; this.onS(0);
+                } else if (Math.sin(this.ry) > 0.95 && this.py < 280) {
+                    this.score += 5; this.onS(this.score); sound.playScore();
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(185, this.py, 30, 50);
+                this.ctx.strokeStyle = '#ff0055'; this.ctx.lineWidth = 4; this.ctx.beginPath();
+                this.ctx.ellipse(200, 300, 100, Math.sin(this.ry)*60, 0, 0, Math.PI*2); this.ctx.stroke();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 32. Basketball Throw
+        gameInstances['basket'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.bx = 200; this.by = 420; this.bvy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && this.by === 420) { this.bvy = -10; sound.playTone(500,'sine',0.05); } }
+            update() {
+                if (this.bvy !== 0) {
+                    this.by += this.bvy;
+                    if (this.by < 120) { sound.playScore(); this.score += 25; this.onS(this.score); this.by = 420; this.bvy = 0; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.strokeStyle = '#ff6600'; this.ctx.lineWidth = 6; this.ctx.strokeRect(160, 100, 80, 10);
+                this.ctx.fillStyle = '#ff6600'; this.ctx.beginPath(); this.ctx.arc(this.bx, this.by, 16, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 33. Bowling Strike
+        gameInstances['bowling'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 300, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.bx = 150; this.by = 440; this.bvy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && this.by === 440) { this.bvy = -8; sound.playTone(400,'sine',0.05); } }
+            update() {
+                if (this.bvy !== 0) {
+                    this.by += this.bvy;
+                    if (this.by < 100) { sound.playWin(); this.score += 100; this.onS(this.score); this.by = 440; this.bvy = 0; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0f172a'; this.ctx.fillRect(0,0,300,500);
+                this.ctx.fillStyle = '#fff'; for(let i=0; i<4; i++) this.ctx.fillRect(100+i*30, 80, 12, 20);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.beginPath(); this.ctx.arc(this.bx, this.by, 14, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 34. Bouncing Pinball
+        gameInstances['pinball'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.ball = {x:200, y:300, vx:3, vy:-5}; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            update() {
+                this.ball.x += this.ball.vx; this.ball.y += this.ball.vy; this.ball.vy += 0.15;
+                if (this.ball.x < 10 || this.ball.x > 390) this.ball.vx *= -1;
+                if (this.ball.y < 10) this.ball.vy *= -1;
+                if (Math.hypot(this.ball.x - 200, this.ball.y - 150) < 30) {
+                    this.ball.vy *= -1.1; sound.playScore(); this.score += 25; this.onS(this.score);
+                }
+                if (this.ball.y > 500) { sound.playHit(); this.ball = {x:200, y:200, vx:3, vy:-5}; this.score = 0; this.onS(0); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff00ff'; this.ctx.beginPath(); this.ctx.arc(200, 150, 25, 0, Math.PI*2); this.ctx.fill();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, 8, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 35. Asteroids Blast
+        gameInstances['asteroids'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 180; this.asteroids = []; this.score = 0; this.frame = 0; this.anim = null;
+                this.left = false; this.right = false;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                const isD = type === 'down';
+                if (key === 'ArrowLeft' || key === 'KeyA') this.left = isD;
+                if (key === 'ArrowRight' || key === 'KeyD') this.right = isD;
+            }
+            update() {
+                this.frame++;
+                if (this.left && this.px > 0) this.px -= 5;
+                if (this.right && this.px < 360) this.px += 5;
+                if (this.frame % 30 === 0) this.asteroids.push({ x: Math.random()*360, y: -20, r: 15 });
+                this.asteroids.forEach(a => a.y += 4);
+                this.asteroids.forEach(a => {
+                    if (Math.hypot(a.x - (this.px+20), a.y - 450) < 30) {
+                        sound.playHit(); this.score = 0; this.onS(0); this.asteroids = [];
+                    }
+                });
+                if (this.frame % 15 === 0) { this.score += 5; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#070a12'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(this.px, 440, 40, 20);
+                this.ctx.fillStyle = '#94a3b8'; this.asteroids.forEach(a => { this.ctx.beginPath(); this.ctx.arc(a.x, a.y, a.r, 0, Math.PI*2); this.ctx.fill(); });
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 36. Geometry Dash
+        gameInstances['dash'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 500, 300);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.py = 220; this.vy = 0; this.jumping = false; this.spikes = []; this.score = 0; this.frame = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down' && (key === 'Space' || key === 'ArrowUp') && !this.jumping) {
+                    this.vy = -11; this.jumping = true; sound.playTone(550,'sine',0.08);
+                }
+            }
+            update() {
+                this.frame++; this.vy += 0.6; this.py += this.vy;
+                if (this.py >= 220) { this.py = 220; this.jumping = false; }
+                if (this.frame % 70 === 0) this.spikes.push({ x: 500 });
+                this.spikes.forEach(s => s.x -= 6);
+                this.spikes.forEach(s => {
+                    if (s.x < 70 && s.x > 30 && this.py > 190) { sound.playHit(); this.score = 0; this.onS(0); this.spikes = []; }
+                });
+                if (this.frame % 10 === 0) { this.score += 2; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,500,300);
+                this.ctx.fillStyle = '#00ff66'; this.ctx.fillRect(0,250,500,50);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(40, this.py, 30, 30);
+                this.ctx.fillStyle = '#ff0055'; this.spikes.forEach(s => {
+                    this.ctx.beginPath(); this.ctx.moveTo(s.x, 250); this.ctx.lineTo(s.x+15, 220); this.ctx.lineTo(s.x+30, 250); this.ctx.fill();
+                });
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 37. Gem Match 3
+        gameInstances['match3'] = class {
+            constructor(c, onS) {
+                this.container = c; this.onS = onS; this.score = 0; this.buildUI();
+            }
+            buildUI() {
+                this.container.innerHTML = `<div id="m3-grid" class="grid grid-cols-5 gap-2 w-72 bg-slate-900 p-3 rounded-2xl border border-slate-800"></div>`; this.render();
+            }
+            render() {
+                const grid = document.getElementById('m3-grid'); if(!grid) return; grid.innerHTML = '';
+                const gems = ['💎','⭐','🔥','⚡','🚀'];
+                for(let i=0; i<25; i++) {
+                    const btn = document.createElement('button'); btn.className = 'text-2xl h-11 bg-slate-800 rounded-xl border border-slate-700';
+                    btn.innerText = gems[Math.floor(Math.random()*gems.length)];
+                    btn.onclick = () => { sound.playScore(); this.score += 30; this.onS(this.score); this.render(); };
+                    grid.appendChild(btn);
+                }
+            }
+            start() {} destroy() {}
+        };
+
+        // 38. Dunk Shot Hoop
+        gameInstances['dunk'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.bx = 200; this.by = 350; this.vy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space') { this.vy = -7; sound.playTone(450,'sine',0.05); } }
+            update() {
+                this.vy += 0.3; this.by += this.vy;
+                if (this.by > 480) { sound.playHit(); this.by = 350; this.vy = 0; this.score = 0; this.onS(0); }
+                if (this.by < 100) { sound.playScore(); this.score += 50; this.onS(this.score); this.by = 350; this.vy = 0; }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff6600'; this.ctx.beginPath(); this.ctx.arc(this.bx, this.by, 15, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 39. 3-Lane Space Racer
+        gameInstances['spacedodge'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 300, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.lane = 1; this.obs = []; this.score = 0; this.anim = null; this.frame = 0;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if ((key === 'ArrowLeft' || key === 'KeyA') && this.lane > 0) this.lane--;
+                if ((key === 'ArrowRight' || key === 'KeyD') && this.lane < 2) this.lane++;
+            }
+            update() {
+                this.frame++;
+                if (this.frame % 35 === 0) this.obs.push({ lane: Math.floor(Math.random()*3), y: -30 });
+                this.obs.forEach(o => o.y += 5);
+                this.obs.forEach(o => {
+                    if (o.lane === this.lane && o.y > 380 && o.y < 460) { sound.playHit(); this.score = 0; this.onS(0); this.obs = []; }
+                });
+                if (this.frame % 10 === 0) { this.score += 2; this.onS(this.score); }
+            }
+            draw() {
+                this.ctx.fillStyle = '#070a12'; this.ctx.fillRect(0,0,300,500);
+                const lanes = [50, 150, 250];
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(lanes[this.lane]-15, 420, 30, 40);
+                this.ctx.fillStyle = '#ff0055'; this.obs.forEach(o => this.ctx.fillRect(lanes[o.lane]-15, o.y, 30, 30));
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 40. Cannon Blast Target
+        gameInstances['cannon'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.ball = null; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && !this.ball) { this.ball = {x: 40, y: 360, vx: 8, vy: -8}; sound.playTone(300,'square',0.1); } }
+            update() {
+                if (this.ball) {
+                    this.ball.x += this.ball.vx; this.ball.y += this.ball.vy; this.ball.vy += 0.2;
+                    if (Math.hypot(this.ball.x - 320, this.ball.y - 100) < 30) {
+                        sound.playWin(); this.score += 50; this.onS(this.score); this.ball = null;
+                    } else if (this.ball.y > 400) { this.ball = null; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.beginPath(); this.ctx.arc(320, 100, 20, 0, Math.PI*2); this.ctx.fill();
+                if (this.ball) { this.ctx.fillStyle = '#ffe600'; this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, 8, 0, Math.PI*2); this.ctx.fill(); }
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 41. Color Flood Fill
+        gameInstances['colorflood'] = class {
+            constructor(c, onS) { this.container = c; this.onS = onS; this.score = 0; this.buildUI(); }
+            buildUI() {
+                this.container.innerHTML = `
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center w-72 shadow-2xl">
+                        <div class="text-slate-300 mb-4 font-bold">اضغط لتغيير لون اللوحة!</div>
+                        <button onclick="sound.playScore(); app.currentGameInstance.score+=20; app.currentGameInstance.onS(app.currentGameInstance.score);" class="w-full py-4 bg-cyan-500 text-slate-950 font-extrabold rounded-xl">ملء اللون</button>
+                    </div>
+                `;
+            }
+            start() {} destroy() {}
+        };
+
+        // 42. Word Guess Hangman
+        gameInstances['hangman'] = class {
+            constructor(c, onS) { this.container = c; this.onS = onS; this.score = 0; this.buildUI(); }
+            buildUI() {
+                this.container.innerHTML = `
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center w-80 shadow-2xl">
+                        <div class="text-2xl text-cyan-400 font-bold mb-4">ك _ _ _ _ ة</div>
+                        <button onclick="sound.playScore(); app.currentGameInstance.score+=30; app.currentGameInstance.onS(app.currentGameInstance.score);" class="px-6 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl">تخمين حرف</button>
+                    </div>
+                `;
+            }
+            start() {} destroy() {}
+        };
+
+        // 43. 15-Sliding Puzzle
+        gameInstances['slide'] = class {
+            constructor(c, onS) { this.container = c; this.onS = onS; this.score = 0; this.buildUI(); }
+            buildUI() {
+                this.container.innerHTML = `<div id="slide-grid" class="grid grid-cols-4 gap-2 w-72 h-72 bg-slate-900 p-3 rounded-2xl border border-slate-800"></div>`; this.render();
+            }
+            render() {
+                const grid = document.getElementById('slide-grid'); if(!grid) return; grid.innerHTML = '';
+                for(let i=1; i<=16; i++) {
+                    const btn = document.createElement('button'); btn.className = 'bg-slate-800 text-cyan-400 font-bold text-lg rounded-xl';
+                    btn.innerText = i === 16 ? '' : i; btn.onclick = () => { sound.playClick(); this.score += 10; this.onS(this.score); };
+                    grid.appendChild(btn);
+                }
+            }
+            start() {} destroy() {}
+        };
+
+        // 44. Snake Boost 2
+        gameInstances['snake2'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.snake = [{x: 5, y: 5}]; this.dx = 1; this.dy = 0; this.score = 0; this.timer = null;
+            }
+            start() { this.timer = setInterval(() => this.update(), 80); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if ((key === 'ArrowUp' || key === 'KeyW') && this.dy !== 1) { this.dx = 0; this.dy = -1; }
+                if ((key === 'ArrowDown' || key === 'KeyS') && this.dy !== -1) { this.dx = 0; this.dy = 1; }
+                if ((key === 'ArrowLeft' || key === 'KeyA') && this.dx !== 1) { this.dx = -1; this.dy = 0; }
+                if ((key === 'ArrowRight' || key === 'KeyD') && this.dx !== -1) { this.dx = 1; this.dy = 0; }
+            }
+            update() {
+                const head = {x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy};
+                if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20) {
+                    sound.playHit(); this.snake = [{x: 5, y: 5}]; this.score = 0; this.onS(0); return;
+                }
+                this.snake.unshift(head); this.snake.pop(); this.score += 1; this.onS(this.score); this.draw();
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.snake.forEach(s => { this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(s.x*20, s.y*20, 18, 18); });
+            }
+            destroy() { clearInterval(this.timer); }
+        };
+
+        // 45. Piano Tiles Rhythm
+        gameInstances['piano'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 300, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.tileY = -100; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down') { sound.playTone(600,'sine',0.1); this.score += 20; this.onS(this.score); this.tileY = -100; }
+            }
+            update() {
+                this.tileY += 6; if (this.tileY > 500) { sound.playHit(); this.tileY = -100; }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0f172a'; this.ctx.fillRect(0,0,300,500);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(75, this.tileY, 75, 120);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 46. Dot Eater Maze
+        gameInstances['pac'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 200; this.py = 200; this.score = 0;
+            }
+            start() { this.draw(); }
+            handleInput(type, key) {
+                if (type !== 'down') return;
+                if (key === 'ArrowLeft' && this.px > 20) this.px -= 20;
+                if (key === 'ArrowRight' && this.px < 380) this.px += 20;
+                if (key === 'ArrowUp' && this.py > 20) this.py -= 20;
+                if (key === 'ArrowDown' && this.py < 380) this.py += 20;
+                this.score += 10; this.onS(this.score); sound.playClick(); this.draw();
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#ffe600'; this.ctx.beginPath(); this.ctx.arc(this.px, this.py, 16, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() {}
+        };
+
+        // 47. Crossy Traffic
+        gameInstances['crossy'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.cy = 360; this.score = 0;
+            }
+            start() { this.draw(); }
+            handleInput(type, key) {
+                if (type === 'down' && key === 'ArrowUp') {
+                    this.cy -= 30; sound.playTone(500,'sine',0.05);
+                    if (this.cy < 30) { sound.playWin(); this.score += 100; this.onS(this.score); this.cy = 360; }
+                    this.draw();
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(185, this.cy, 30, 30);
+            }
+            destroy() {}
+        };
+
+        // 48. Precision Balloon Pop
+        gameInstances['balloon'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.by = 500; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) {
+                if (type === 'down') { sound.playScore(); this.score += 15; this.onS(this.score); this.by = 500; }
+            }
+            update() {
+                this.by -= 4; if (this.by < -30) this.by = 500;
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#ff0055'; this.ctx.beginPath(); this.ctx.arc(200, this.by, 20, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 49. Sumo Ring Push
+        gameInstances['sumo'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.px = 180; this.score = 0;
+            }
+            start() { this.draw(); }
+            handleInput(type, key) {
+                if (type === 'down' && key === 'Space') {
+                    this.px += 10; sound.playTone(300,'sine',0.05);
+                    if (this.px > 280) { sound.playWin(); this.score += 50; this.onS(this.score); this.px = 180; }
+                    this.draw();
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#0b0f19'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.strokeStyle = '#fff'; this.ctx.lineWidth = 4; this.ctx.beginPath(); this.ctx.arc(200, 200, 120, 0, Math.PI*2); this.ctx.stroke();
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.beginPath(); this.ctx.arc(this.px, 200, 20, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() {}
+        };
+
+        // 50. Rocket Lander
+        gameInstances['rocket'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 500);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.ry = 50; this.rvy = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && (key === 'Space' || key === 'ArrowUp')) { this.rvy -= 2; sound.playTone(400,'sine',0.05); } }
+            update() {
+                this.rvy += 0.15; this.ry += this.rvy;
+                if (this.ry >= 440) {
+                    if (this.rvy < 3) { sound.playWin(); this.score += 100; this.onS(this.score); } else { sound.playHit(); }
+                    this.ry = 50; this.rvy = 0;
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#05070f'; this.ctx.fillRect(0,0,400,500);
+                this.ctx.fillStyle = '#00ff66'; this.ctx.fillRect(160, 460, 80, 10);
+                this.ctx.fillStyle = '#00f3ff'; this.ctx.fillRect(190, this.ry, 20, 30);
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        // 51. Golf Hole-In-One
+        gameInstances['golf'] = class {
+            constructor(c, onS) {
+                this.canvas = createStandardCanvas(c, 400, 400);
+                this.ctx = this.canvas.getContext('2d');
+                this.onS = onS; this.gx = 60; this.gvx = 0; this.score = 0; this.anim = null;
+            }
+            start() { const loop = () => { this.update(); this.draw(); this.anim = requestAnimationFrame(loop); }; loop(); }
+            handleInput(type, key) { if (type === 'down' && key === 'Space' && this.gvx === 0) { this.gvx = 6; sound.playTone(500,'sine',0.05); } }
+            update() {
+                if (this.gvx > 0) {
+                    this.gx += this.gvx; this.gvx -= 0.05;
+                    if (Math.abs(this.gx - 320) < 15) { sound.playWin(); this.score += 100; this.onS(this.score); this.gx = 60; this.gvx = 0; }
+                    else if (this.gvx <= 0) { sound.playHit(); this.gx = 60; this.gvx = 0; }
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = '#065f46'; this.ctx.fillRect(0,0,400,400);
+                this.ctx.fillStyle = '#000'; this.ctx.beginPath(); this.ctx.arc(320, 200, 12, 0, Math.PI*2); this.ctx.fill();
+                this.ctx.fillStyle = '#fff'; this.ctx.beginPath(); this.ctx.arc(this.gx, 200, 8, 0, Math.PI*2); this.ctx.fill();
+            }
+            destroy() { cancelAnimationFrame(this.anim); }
+        };
+
+        const app = new App();
+        window.onload = () => { app.init(); };
+    </script>
+</body>
+</html>
